@@ -32,11 +32,13 @@ tau=0.3
 
 Amphi = {"largeur": 12,#largeur = direction Nord-Sud
          "longueur":14,#longueur = direction Est-Ouest
-         "hauteur":6.5} 
+         "hauteur":6.5, 
+        "Volume" : 12*14*6.5} 
 
 Hall = {"largeur": 3,
-       "longueur" : 6,
-       "hauteur" : 3} #on ne considère que le RDC, le 1er étage est adiabatique
+       "longueur" : 8,
+       "hauteur" : 3, #on ne considère que le RDC, le 1er étage est adiabatique
+       "Volume" : 3*8*3} 
 
 ## définitions de dictionnaires des différents composants
 air = {'Density': 1.2,                      # kg/m³
@@ -45,32 +47,34 @@ air = {'Density': 1.2,                      # kg/m³
 pd.DataFrame(air, index=['Air'])
 
 
-concrete = {'Conductivity': 1.400,          # W/(m·K)
+concrete = {'Conductivity': 1.75,          # W/(m·K)
             'Density': 2300.0,              # kg/m³
             'Specific heat': 880,           # J/(kg⋅K)
-            'Width': 0.2}                   # m
+            'Width': 0.175}                 # m
      
-insulation = {'Conductivity': 0.027,        # W/(m·K)
+insulation = {'Conductivity': 0.004,        # W/(m·K)
               'Density': 55.0,              # kg/m³
               'Specific heat': 1210,        # J/(kg⋅K)
-              'Width': 0.08}                # m
+              'Width': 0.04}                # m
 
 glass = {'Conductivity': 1.4,               # W/(m·K)
          'Density': 2500,                   # kg/m³
          'Specific heat': 1210,             # J/(kg⋅K)
          'Width': 0.04,                     # m
-         'Surface': 2,
+         'Surface': Hall["longueur"]*Hall["hauteur"], #l'accès extérieur est que du verre
          'Transmission': 0.8}                     # m²
 
 door = {'Conductivity': 0.1,  
         'Width': 0.04,  
-       'Surface' : 2}                     # m²
+       'Surface' : 2.20*3}                     # m²
 
-Surface = {'Nord': longueur*hauteur-door['Surface']-glass['Surface'],
-           'Sud': longueur*hauteur-glass['Surface'],
-           'Milieu':longueur*hauteur-door['Surface'],
-           'Adiab':longueur/2*hauteur,
-          'Plafond' : longueur*largeur}
+Surface = {'A_ouest': Amphi["largeur"]*Amphi["hauteur"],
+           'A_adiab': Amphi["longueur"]*Amphi["hauteur"],
+           'A_Plafond' : Amphi["longueur"]*Amphi["largeur"],
+           'H_adiab':Hall["longueur"]*Hall["hauteur"]+Hall["largeur"]*Hall["hauteur"],
+           'H_sud':glass["Surface"],
+           'H_Plafond' : Hall["longueur"]*Hall["largeur"],
+          'Interface' : Hall["largeur"]*Hall["hauteur"]-door["Surface"]}
 
 ### création du panda mur
 wall = pd.DataFrame.from_dict({'Layer_in': concrete,
