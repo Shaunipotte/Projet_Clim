@@ -23,9 +23,10 @@ start_date = '2000-06-20 12:00:00' # à changer selon la journée que l'on veut
 end_date = '2000-06-30 12:00:00'
 
 dico_dyn, Text_dyn = donnees_dynamique(start_date, end_date)
-phie_h = 0.4 # humidité relative en hiver
-phie_e = 0.7 # été
 #en dynamique la température change au fur et à mesure
+phie_h = 0.4                        # humidité relative en hiver
+phie_e = 0.7                        # été
+                                    
 
 #coeffs d'éclairement
 alpha_ext=0.5
@@ -33,24 +34,23 @@ alpha_in=0.4
 tau=0.3
 
 #considérations géométriques
-Amphi = {"largeur": 12,#largeur = direction Nord-Sud
-         "longueur":14,#longueur = direction Est-Ouest
-         "hauteur":6.5, 
-        "Volume" : 12*14*6.5} 
+Amphi = {"largeur": 12,                     #largeur = direction Nord-Sud
+         "longueur":14,                     #longueur = direction Est-Ouest
+         "hauteur":6.5,} 
 
 Hall = {"largeur": 3,
        "longueur" : 8,
-       "hauteur" : 3, #on ne considère que le RDC, le 1er étage est adiabatique
-       "Volume" : 3*8*3} 
+       "hauteur" : 3}                       #on ne considère que le RDC, le 1er étage est adiabatique
 
 ## définitions de dictionnaires des différents composants
 air = {'Density': 1.2,                      # kg/m³
-       'Specific heat': 1000,
-       'Volume': longueur*largeur*hauteur}               # J/(kg·K)
+       'Specific heat': 1000,               # J/(kg·K)
+       'Volume_hall': Hall["largeur"]*Hall["longueur"]*Hall["hauteur"],
+       'Volume_amphi' : Amphi["largeur"]*Amphi["longueur"]*Amphi["hauteur"]}               
 pd.DataFrame(air, index=['Air'])
 
 
-concrete = {'Conductivity': 1.75,          # W/(m·K)
+concrete = {'Conductivity': 1.75,           # W/(m·K)
             'Density': 2300.0,              # kg/m³
             'Specific heat': 880,           # J/(kg⋅K)
             'Width': 0.175}                 # m
@@ -60,16 +60,19 @@ insulation = {'Conductivity': 0.004,        # W/(m·K)
               'Specific heat': 1210,        # J/(kg⋅K)
               'Width': 0.04}                # m
 
-glass = {'Conductivity': 1.4,               # W/(m·K)
-         'Density': 2500,                   # kg/m³
-         'Specific heat': 1210,             # J/(kg⋅K)
-         'Width': 0.04,                     # m
+glass = {'Conductivity': 1.4,                         # W/(m·K)
+         'Density': 2500,                             # kg/m³
+         'Specific heat': 1210,                       # J/(kg⋅K)
+         'Width': 0.04,                               # m
          'Surface': Hall["longueur"]*Hall["hauteur"], #l'accès extérieur est que du verre
-         'Transmission': 0.8}                     # m²
+         'Transmission': 0.8}                         # m²
 
 door = {'Conductivity': 0.1,  
         'Width': 0.04,  
-       'Surface' : 2.20*3}                     # m²
+       'Surface' : 2*3}                            # m²
+door_secours = {'Conductivity': 45,  
+        'Width': 0.04,  
+       'Surface' : 2*1.5}                            # m²
 
 Surface = {'A_ouest': Amphi["largeur"]*Amphi["hauteur"],
            'A_adiab': Amphi["longueur"]*Amphi["hauteur"],
@@ -83,17 +86,18 @@ Surface = {'A_ouest': Amphi["largeur"]*Amphi["hauteur"],
 wall = pd.DataFrame.from_dict({'Layer_in': concrete,
                                'Layer_out': insulation,
                                'Glass': glass,
-                                    'Door': door},
+                               'Door': door,
+                               'Issue_secours' : door_secours},
                               orient='index')
 
 # définition coeff convection 
 h = pd.DataFrame([{'in': 8., 'out': 25}], index=['h'])
 
 ############################################################## CTA ###############################
-KpH = 1e-5 #HALL, no controller Kp -> 0
-KpA = 1e4 #AMPHI, almost perfect controller Kp -> ∞
-deltaT_h = 15 # différence de température en hiver
-deltaT_s = -10 # différence de température en été
+KpH = 1e-5                      #HALL, no controller Kp -> 0
+KpA = 1e4                       #AMPHI, almost perfect controller Kp -> ∞
+deltaT_h = 15                   # différence de température en hiver
+deltaT_s = -10                  # différence de température en été
 
 ###### flux utilisateur
 #sensible
@@ -105,39 +109,53 @@ Qla_h = 27*40          # personnes en amphi en hiver, on sous-évalue
 Qla_e = 41*70          # personnes amphi en été, on étudie quel mois ?
 Qlhall = 30*3          # On considère qu'il y a toujours 3 personnes dans le hall
 
+#Infiltrations permanentes
+Va_tot = 300                # m3/h
+Va_ha = 280                 # hall-amphi
+ACH = {'Amphi_o': (Va_tot-Va_ha)/air['Volume_amphi'], 
+       'Interface':(Va_ha)/air['Volume_amphi'],
+      'Hall_s': 6}             #on considère une ventilation importante avec la porte automatique
+Va_dot = {'Amphi' : (Va_tot-Va_ha)/3600,
+          'Interface' : Va_ha/3600,
+          'Hall' : ACH['Hall_s'] / 3600 * air['Volume_hall']}
+
 ###############################################################################
 ############################# Le schéma général ###############################
 ###############################################################################
 #les noeuds
-θ = ['θ0', 'θ1', 'θ2', 'θ3', 'θ4', 'θ5', 'θ6', 'θ7','θ8', 'θ9', 'θ10', 'θ11', 'θ12', 'θ13', 'θ14']
-# flow-rate branches
-q = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11','q12', 'q13', 'q14', 'q15', 'q16', 'q17', 'q18', 'q19', 'q20', 'q21', 'q22']
-# temperature nodes
-nθ = len(θ)      # number of temperature nodes
-# flow-rate branches
-nq = len(q)     # number of flow branches
+θ = ['θ0', 'θ1', 'θ2', 'θ3', 'θ4', 'θ5', 'θ6', 'θ7','θ8', 'θ9', 'θ10', 'θ11', 
+     'θ12', 'θ13', 'θ14']                                                          # temprature nodes 
+q = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11',
+     'q12', 'q13', 'q14', 'q15', 'q16', 'q17', 'q18', 'q19', 'q20', 'q21', 'q22']  # flow-rate branches
+nθ = len(θ)                                                                        # number of temperature nodes
+nq = len(q)                                                                        # number of flow branches
 
 
 ########################### matrice A des flux #############################
 
-A = np.zeros([nq, nθ])       # n° of branches X n° of nodes
-A[0, 0] = 1                 # branch 0: -> node 0
-A[1, 0], A[1, 1] = -1, 1    # branch 1: node 0 -> node 1
-A[2, 1], A[2, 2] = -1, 1    # branch 2: node 1 -> node 2
-A[3, 2], A[3, 3] = -1, 1    # branch 3: node 2 -> node 3
-A[4, 3], A[4, 4] = -1, 1    # branch 4: node 3 -> node 4
-A[5, 4], A[5, 5] = -1, 1    # branch 5: node 4 -> node 5
+A = np.zeros([nq, nθ])          # n° of branches X n° of nodes
 
-A[6, 5], A[6, 6] = 1, -1    # branch 6: node 5 -> node 6
-A[7, 6], A[7, 7] = 1, -1    # branch 7: node 6 -> node 7
-A[8, 7], A[8, 8] = 1, -1    # branch 8: node 7 -> node 8
-A[9, 8], A[9, 9] = 1, -1    # branch 9: node 8 -> node 9
-A[10, 9], A[10, 10] = 1, -1    # branch 10: node 9 -> node 10
+#amphi
+A[0, 0] = 1                     # branch 0: -> node 0
+A[1, 0], A[1, 1] = -1, 1        # branch 1: node 0 -> node 1
+A[2, 1], A[2, 2] = -1, 1        # branch 2: node 1 -> node 2
+A[3, 2], A[3, 3] = -1, 1        # branch 3: node 2 -> node 3
+A[4, 3], A[4, 4] = -1, 1        # branch 4: node 3 -> node 4
+A[5, 4], A[5, 5] = -1, 1        # branch 5: node 4 -> node 5
+
+#interface
+A[6, 5], A[6, 6] = 1, -1        # branch 6: node 5 -> node 6
+A[7, 6], A[7, 7] = 1, -1        # branch 7: node 6 -> node 7
+A[8, 7], A[8, 8] = 1, -1        # branch 8: node 7 -> node 8
+A[9, 8], A[9, 9] = 1, -1        # branch 9: node 8 -> node 9
+
+#hall
+A[10, 9], A[10, 10] = 1, -1     # branch 10: node 9 -> node 10
 A[11, 10], A[11, 11] = 1, -1    # branch 11: node 10 -> node 11
 A[12, 11], A[12, 12] = 1, -1    # branch 12: node 11 -> node 12
 A[13, 12], A[13, 13] = 1, -1    # branch 13: node 12 -> node 13
 A[14, 13], A[14, 14] = 1, -1    # branch 14: node 13 -> node 14
-A[15, 14]= 1   # branch 15: node 14 -> node 15
+A[15, 14]= 1                    # branch 15: node 14 -> node 15
 
 # porte, fenetre, ventilation
 A[18, 5]= 1
@@ -150,42 +168,39 @@ A[19,5] = 1
 A[20,9] = 1
 
 #ponts thermiques
-
+A[21,5] = 1
+A[22,9] = 1
 
 A = pd.DataFrame(A, index=q, columns=θ)
 
-############ Matrice B avec T_ext définit à l'aide du code rayonnement ########
+############### Matrice B  #########################
 b = pd.Series(['Text', 0, 0, 0, 0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 'Text', 'Text', 0,
-               'Text', 'Tc', 'Tc'],
+               'Text', 'Ts', 'Ts', 'Text', 'Text'],
               index=q)
+#avec T_ext défini à l'aide du code rayonnement
+#Ts, température de soufflage de la CTA
 
 #################################### Matrice G ################################
 
-# définiton conductance de conduction
+# définiton conductance
 G_cd = wall['Conductivity'] / wall['Width']
 pd.DataFrame(G_cd, columns=['Conductance'])
-##G de des infiltrations d'air pour les différentes parois
-ACH = {'S': 2, 
-       'I': 2,
-      'N':4}
-Va_dot = {'S' : ACH['S'] / 3600 * air['Volume'],
-              'I' : ACH['I'] / 3600 * air['Volume'],
-              'N' : ACH['N'] / 3600 * air['Volume']}
-Gv = {'S' :  air['Density'] * air['Specific heat'] * Va_dot['S'],
-       'I' : air['Density'] * air['Specific heat'] * Va_dot['I'],
-       'N' : air['Density'] * air['Specific heat'] * Va_dot['N']} 
 
-#Gv['S'] = 0 ##ventilation nord vers Sud
-Gv['N'] = 0  ##ventilation Sud vers Nord
+#G des infiltrations d'air pour les différentes parois
+Gv = {'A' :  air['Density'] * air['Specific heat'] * Va_dot['Amphi'],
+       'I' : air['Density'] * air['Specific heat'] * Va_dot['Interface'],
+       'H' : air['Density'] * air['Specific heat'] * Va_dot['Hall']} 
+#Gv['H'] = 0            ##ventilation Amphi vers Hall
+Gv['A'] = 0             ##ventilation Hall vers Amphi
 
-# glass: convection outdoor & conduction
-Gglass16 = wall.loc['Glass', 'Surface'] / (1 / h['out'] + 1 / G_cd['Glass'] + 1 / h['in'])
-Gporte16 = wall.loc['Door', 'Surface'] / (1 / h['out'] + 1 / G_cd['Door'] + 1 / h['in'])
+# Les résistances en parallèle
+Gglass16 = wall.loc['Glass', 'Surface'] / (1 / h['out'] + 1 / G_cd['Glass'] + 1 / h['in']) #on le garde au-cas où on veut faire un autre cas
+Gporte18 = wall.loc['Issue_secours', 'Surface'] / (1 / h['out'] + 1 / G_cd['Issue_secours'] + 1 / h['in'])
 Gporte17 = wall.loc['Door', 'Surface'] / (1 / h['in'] + 1 / G_cd['Door'] + 1 / h['in'])
-G16 = float(Gv['S'] + Gglass16.iloc[0])
+G16 = float(Gv['H'])
 G17 = float(Gv['I'] + Gporte17.iloc[0])
-G18 = float(Gv['N'] + Gglass16.iloc[0] + Gporte16.iloc[0])
+G18 = float(Gv['A'] + Gporte18.iloc[0])
 
 ## remplissage de G
 GN = np.array(np.hstack([h['out'].iloc[0] * Surface['Nord'], 
@@ -208,7 +223,7 @@ GS = np.array((h['in'].iloc[0] * Surface['Sud'],
       h['out'].iloc[0] * Surface['Sud']))
 
 GP = np.array((G16, G17, G18))
-GC = np.array((KpN, KpS))
+GC = np.array((KpA, KpH))
 
 G = np.array(np.hstack((GN, GM, GS, GP, GC)))
 G = pd.DataFrame(G, index=q)
@@ -224,7 +239,10 @@ f = pd.Series(['Φin', 0, 0, 0, 'ΦiN1', 'Qa',
 # Compute capacities for walls
 C_walls = wall['Density'] * wall['Specific heat'] * wall['Width']
 # Compute capacity for air
-C_air = air['Density'] * air['Specific heat'] * air['Volume']
+C_air_a = air['Density'] * air['Specific heat'] * air['Volume_amphi']
+C_air_h = air['Density'] * air['Specific heat'] * air['Volume_hall']
+# Compute capacity for glass
+C_glass = glass['Density'] * glass['Specific heat'] * glass['Width']
 
 # Assign non-zero capacities to specific diagonal elements
 CN = np.array(np.hstack([0,
