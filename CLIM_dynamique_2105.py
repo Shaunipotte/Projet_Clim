@@ -23,6 +23,8 @@ start_date = '2000-06-20 12:00:00' # à changer selon la journée que l'on veut
 end_date = '2000-06-30 12:00:00'
 
 dico_dyn, Text_dyn = donnees_dynamique(start_date, end_date)
+phie_h = 0.4 # humidité relative en hiver
+phie_e = 0.7 # été
 #en dynamique la température change au fur et à mesure
 
 #coeffs d'éclairement
@@ -30,6 +32,7 @@ alpha_ext=0.5
 alpha_in=0.4
 tau=0.3
 
+#considérations géométriques
 Amphi = {"largeur": 12,#largeur = direction Nord-Sud
          "longueur":14,#longueur = direction Est-Ouest
          "hauteur":6.5, 
@@ -80,22 +83,27 @@ Surface = {'A_ouest': Amphi["largeur"]*Amphi["hauteur"],
 wall = pd.DataFrame.from_dict({'Layer_in': concrete,
                                'Layer_out': insulation,
                                'Glass': glass,
-                                'Door': door},
+                                    'Door': door},
                               orient='index')
 
 # définition coeff convection 
 h = pd.DataFrame([{'in': 8., 'out': 25}], index=['h'])
 
-#thermostat ######
-KpN = 1e-4 #pièce nord, no controller Kp -> 0
-KpS = 1e3 #pièce Sud, almost perfect controller Kp -> ∞
+############################################################## CTA ###############################
+KpH = 1e-5 #HALL, no controller Kp -> 0
+KpA = 1e4 #AMPHI, almost perfect controller Kp -> ∞
 deltaT_h = 15 # différence de température en hiver
 deltaT_s = -10 # différence de température en été
-Tc = 18 #été
-#Tc = 21 #hiver
 
-## flux utilisateur
-Qa = 80 #~80 par personne, ici c'est celui de la pièce Nord (four, télé, personnes)
+###### flux utilisateur
+#sensible
+Qsa_h = 92*40          # personnes en amphi en hiver, on sous-évalue
+Qsa_e = 77*70          # personnes amphi en été, on étudie quel mois ?
+Qshall = 80*3          # On considère qu'il y a toujours 3 personnes dans le hall
+#latent
+Qla_h = 27*40          # personnes en amphi en hiver, on sous-évalue
+Qla_e = 41*70          # personnes amphi en été, on étudie quel mois ?
+Qlhall = 30*3          # On considère qu'il y a toujours 3 personnes dans le hall
 
 ###############################################################################
 ############################# Le schéma général ###############################
@@ -103,7 +111,7 @@ Qa = 80 #~80 par personne, ici c'est celui de la pièce Nord (four, télé, pers
 #les noeuds
 θ = ['θ0', 'θ1', 'θ2', 'θ3', 'θ4', 'θ5', 'θ6', 'θ7','θ8', 'θ9', 'θ10', 'θ11', 'θ12', 'θ13', 'θ14']
 # flow-rate branches
-q = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11','q12', 'q13', 'q14', 'q15', 'q16', 'q17', 'q18', 'q19', 'q20']
+q = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11','q12', 'q13', 'q14', 'q15', 'q16', 'q17', 'q18', 'q19', 'q20', 'q21', 'q22']
 # temperature nodes
 nθ = len(θ)      # number of temperature nodes
 # flow-rate branches
