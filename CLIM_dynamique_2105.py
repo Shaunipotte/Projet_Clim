@@ -33,10 +33,10 @@ tau=0.3
 Amphi = {"largeur": 12,#largeur = direction Nord-Sud
          "longueur":14,#longueur = direction Est-Ouest
          "hauteur":6.5} 
-largeur = 4     # largeur des pièces
-longueur = 8    # longueur de l'appartement
-hauteur = 3     # hauteur des murs 
-Hall = {"largeur": 1}
+
+Hall = {"largeur": 3,
+       "longueur" : 6,
+       "hauteur" : 3} #on ne considère que le RDC, le 1er étage est adiabatique
 
 ## définitions de dictionnaires des différents composants
 air = {'Density': 1.2,                      # kg/m³
