@@ -30,6 +30,9 @@ alpha_ext=0.5
 alpha_in=0.4
 tau=0.3
 
+Amphi = {"largeur": 12,#largeur = direction Nord-Sud
+         "longueur":14,#longueur = direction Est-Ouest
+         "hauteur":6.5} 
 largeur = 4     # largeur des pièces
 longueur = 8    # longueur de l'appartement
 hauteur = 3     # hauteur des murs 
