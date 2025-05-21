@@ -23,7 +23,7 @@ def donnees_dynamique(start_date,end_date) :
     # Create a DataFrame from the unique month-year combinations
     pd.DataFrame(unique_month_years, columns=['Month-Year'])
     # select columns of interest
-    weather_data = data[["temp_air", "dir_n_rad", "dif_h_rad"]]
+    weather_data = data[["temp_air", "dir_n_rad", "dif_h_rad", "relative_humidity"]]
     # replace year with 2000 in the index 
     weather_data.index = weather_data.index.map(
         lambda t: t.replace(year=2000))
@@ -49,11 +49,12 @@ def donnees_dynamique(start_date,end_date) :
     
     dico_dyn = {}
     Text = {}
+    phi = weather_data['relative_humidity']
     for val in valeur :
         dico,Tpt = donnees(str(val))
         dico_dyn[str(val)] = dico
         Text[str(val)] = Tpt
-    return dico_dyn, Text
+    return dico_dyn, Text, phi
 
 
 def moyenne(start_date,end_date) :
