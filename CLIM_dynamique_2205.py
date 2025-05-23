@@ -520,9 +520,9 @@ input_data_set['Q_lat_A_exp'] = Q_lat_A_exp
 linestyles = ['-'] * 7 + ['--'] * 7  # Traits solides pour les 7 premiers, pointillés pour les 7 derniers
 
 # Définir les noms des courbes
-labels = ['$\\theta_1$', '$\\theta_3$', '$\\theta_5$', '$\\theta_7$', '$\\theta_9$', 
+labels = ['$\\theta_1$', '$\\theta_3$', 'Amphi', '$\\theta_7$', 'Hall', 
     '$\\theta_{11}$', '$\\theta_{13}$', '$\\theta_1$ imp', '$\\theta_3$ imp', 
-    '$\\theta_5$ imp', '$\\theta_7$ imp', '$\\theta_9$ imp', 
+    'Amphi imp', '$\\theta_7$ imp', 'Hall imp', 
     '$\\theta_{11}$ imp', '$\\theta_{13}$ imp']
 colors = ['#FF0000','#FFD700','#00FF00','#0000FF','#FF4500', '#800080', '#FF1493','#800000',
           '#808000','#008000','#000080','#8B0000','#0000A0','#800080']
