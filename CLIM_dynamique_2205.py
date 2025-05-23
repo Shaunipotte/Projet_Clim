@@ -401,7 +401,7 @@ Qa = 90*np.ones(n) # on peut tenter ensuite de simuler une évolution des consom
 #fermeture départ
 repos = int((3600*14/dt))
 cours = int((3600*10/dt))
-QaA[0:0+cours] = QsA
+QaA[0:0+cours] = QsA+Qled
 QaA[cours:repos] = 0
 
 QaH[0:0+cours] = Qshall
