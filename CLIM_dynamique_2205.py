@@ -476,8 +476,8 @@ y['θ9'].iloc[:, 1] = pd.to_numeric(y['θ9'].iloc[:, 1], errors='coerce')
 
 #Amphi
 SA = 2*Surface["A_Plafond"]+Surface["A_ouest"]+Surface["A_adiab"]+Surface["Interface"] # m², surface area of the house
-q_HVAC_O_exp = KpA * (u['q19'] - y['θ5'].iloc[:, 0])/SA  # W/m²
-q_HVAC_O_imp = KpA * (u['q19'] - y['θ5'].iloc[:, 1])/SA  # W/m²
+q_HVAC_A_exp = KpA * (u['q19'] - y['θ5'].iloc[:, 0])/SA  # W/m²
+q_HVAC_A_imp = KpA * (u['q19'] - y['θ5'].iloc[:, 1])/SA  # W/m²
 #Hall
 SH = 2*Surface["H_Plafond"]+Surface["H_sud"]+Surface["Interface"]+Surface["H_adiab"]  # m², surface area of the house
 q_HVAC_H_exp = KpH * (u['q20'] - y['θ9'].iloc[:, 0])/SH  # W/m²
@@ -487,9 +487,9 @@ q_HVAC_H_imp = KpH * (u['q20'] - y['θ9'].iloc[:, 1])/SH  # W/m²
 
 #charges sensibles
 Qs = pd.DataFrame(index=u.index)
-Qs['q_HVAC_O_exp'] = q_HVAC_O_exp*SA
+Qs['q_HVAC_A_exp'] = q_HVAC_A_exp*SA
 Qs['q_HVAC_H_exp'] = q_HVAC_H_exp*SH
-Qs['q_HVAC_O_imp'] = q_HVAC_O_imp*SA
+Qs['q_HVAC_A_imp'] = q_HVAC_A_imp*SA
 Qs['q_HVAC_H_imp'] = q_HVAC_H_imp*SH
 
 #renouvellement CTA 
@@ -497,7 +497,7 @@ cp_air = air['Specific heat']  # J/(kg·K)
 # θ5 est la température intérieure de l'amphi (explicite)
 Ti_A_exp = y_exp['θ5']
 # Q_HVAC total [W] : multiplier la densité et la surface si nécessaire
-Qhvac_A_exp = q_HVAC_O_exp * SA  # q_HVAC_O_exp était en W/m²
+Qhvac_A_exp = q_HVAC_A_exp * SA  # q_HVAC_A_exp était en W/m²
 # débit massique [kg/s]
 m_dot_A_exp = Qhvac_A_exp / (cp_air * (Ts - Ti_A_exp))
 input_data_set['m_dot_A_exp'] = m_dot_A_exp
@@ -542,7 +542,7 @@ for i in range(len(y.columns)):
         ax[1].plot(y_col.index, y_col, label=labels[i], linestyle=linestyles[i], color=colors[i])
 
 # les flux HVAC
-Qs[['q_HVAC_O_exp', 'q_HVAC_H_exp', 'q_HVAC_O_imp', 'q_HVAC_H_imp']].plot(ax=ax[2])
+Qs[['q_HVAC_A_exp', 'q_HVAC_H_exp', 'q_HVAC_A_imp', 'q_HVAC_H_imp']].plot(ax=ax[2])
 
 #les temps ext
 text_series = pd.Series(Text_dyn).sort_index()
@@ -634,3 +634,31 @@ ax_conf.legend(loc='upper right')
 ax_conf.grid(True)
 plt.tight_layout()
 plt.show()
+
+
+############################################### EXTRAIRE LES VAEURS MIN ET MAX #######################
+#selectionner la bonne gamme de temps pour sortir les valeurs aberrantes
+time_out = pd.Timedelta(hours=12)
+start_time = Qs.index.min() + time_out
+end_time = Qs.index.max() - time_out
+# Filtrage des données entre start_time et end_time
+Qs_filtered = Qs[(Qs.index >= start_time) & (Qs.index <= end_time)]
+Q_lat_filtered = Q_lat_A_exp[(Q_lat_A_exp.index >= start_time) & (Q_lat_A_exp.index <= end_time)]
+
+# Calcul des min et max pour HVAC_A (entre exp et imp)
+HVAC_A_min = Qs_filtered[['q_HVAC_A_exp', 'q_HVAC_A_imp']].min(axis=1).min()
+HVAC_A_max = Qs_filtered[['q_HVAC_A_exp', 'q_HVAC_A_imp']].max(axis=1).max()
+# Calcul des min et max pour HVAC_H (entre exp et imp)
+hvac_h_min = Qs_filtered[['q_HVAC_H_exp', 'q_HVAC_H_imp']].min(axis=1).min()
+hvac_h_max = Qs_filtered[['q_HVAC_H_exp', 'q_HVAC_H_imp']].max(axis=1).max()
+#calcul des min etr max pour la charge latente
+Charge_latente_min = Q_lat_filtered.min()
+Charge_latente_max = Q_lat_filtered.max()
+
+# Résultat
+print("Qs_Amphi min:", HVAC_A_min ,"W")
+print("Qs_Amphi max:", HVAC_A_max , "W")
+print("Qs_Hall min:", hvac_h_min, "W")
+print("Qs_Hall max:", hvac_h_max, "W")
+print("Ql_Amphi min:", Charge_latente_min, "W")
+print("Ql_Amphi max:", Charge_latente_max, "W")
