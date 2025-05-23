@@ -572,8 +572,8 @@ ax[1].grid(True, linestyle='--', alpha=0.7)
 ax[2].set_ylabel('Heat Rate $q$ (W·m⁻²)', fontsize=12)
 ax[2].set_xlabel('Time', fontsize=12)
 ax[2].set_title(f'CAS 0 - HVAC Fluxes: $dt$ = {dt:.0f} s', fontsize=14)
-ax[2].legend(['$q_{HVAC} North$ Exp.', '$q_{HVAC} South$ Exp.', 
-              '$q_{HVAC} North$ Imp.', '$q_{HVAC} South$ Imp.'], 
+ax[2].legend(['$q_{HVAC} Amphi$ Exp.', '$q_{HVAC} Hall$ Exp.', 
+              '$q_{HVAC} Amphi$ Imp.', '$q_{HVAC} Hall$ Imp.'], 
              bbox_to_anchor=(1.05, 0.5), loc='center left', fontsize=10)
 ax[2].grid(True, linestyle='--', alpha=0.7)
 
