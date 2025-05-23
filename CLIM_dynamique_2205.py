@@ -51,7 +51,7 @@ Amphi = {"largeur": 12,                     #largeur = direction Nord-Sud
          "longueur":14,                     #longueur = direction Est-Ouest
          "hauteur":6.5} 
 
-Hall = {"largeur": 3,
+Hall = {"largeur": 12,
        "longueur" : 8,
        "hauteur" : 3}                       #on ne considère que le RDC, le 1er étage est adiabatique
 
@@ -111,6 +111,8 @@ KpH = 1e-3                      #HALL, no controller Kp -> 0
 KpA = 1e3                       #AMPHI, almost perfect controller Kp -> ∞
 deltaT_h = 15                   # différence de température en hiver
 deltaT_e = -10                  # différence de température en été
+Th = 20
+Te = 24
 
 #################### charges auxiliaires ##################################
 npe = 70               # personnes en été
@@ -196,7 +198,7 @@ A = pd.DataFrame(A, index=q, columns=θ)
 ############### Matrice B  #########################
 b = pd.Series(['Text', 0, 0, 0, 0, 0, 0, 0,
                0, 0, 0, 0, 0, 'Text', 'Text', 0,
-               'Text', 'Ts', 'Ts', 'Text', 'Text'],
+               'Text', 'Text', 'Text', 'Tc', 'Tc'],
               index=q)
 #avec T_ext défini à l'aide du code rayonnement
 #Ts, température de soufflage de la CTA
@@ -370,9 +372,11 @@ for key, value in Text_dyn.items():
 #controler
 if saison == "hiver":
     dTc = deltaT_h
+    Ti = Th
 else : 
     dTc = deltaT_e
-Tc = Text+dTc
+    Ti = Te
+Ts = Ti+dTc   #température de soufflage
 
 #relative humidity
 phi_e = np.ones(n)
@@ -427,7 +431,7 @@ for key, value in dico_dyn.items():
     ΦiS2[v : v+k] = alpha_in*tau*ES*glass["Surface"]*((Hall["longueur"]*Hall["hauteur"])/(2*Surface["H_adiab"]+Surface["Interface"]+Surface["H_sud"]+2*Surface["H_Plafond"]))
     v = v+k
 
-data = {'Text': Text, 'Ts': Tc, 'ΦiO': ΦiO, 'ΦiO1': ΦiO1, 'QaA': QaA, 'ΦiO2': ΦiO2, 'ΦiS2': ΦiS2, 'ΦiS1': ΦiS1, 'ΦiS': ΦiS, 'QaH' : QaH}
+data = {'Text': Text, 'Tc': Ti, 'ΦiO': ΦiO, 'ΦiO1': ΦiO1, 'QaA': QaA, 'ΦiO2': ΦiO2, 'ΦiS2': ΦiS2, 'ΦiS1': ΦiS1, 'ΦiS': ΦiS, 'QaH' : QaH}
 input_data_set = pd.DataFrame(data, index=time)
 
 u = inputs_in_time(us, input_data_set)
@@ -438,7 +442,7 @@ u = inputs_in_time(us, input_data_set)
 θ_exp = pd.DataFrame(index=u.index)     # empty df with index for explicit Euler
 θ_imp = pd.DataFrame(index=u.index)     # empty df with index for implicit Euler
 
-θ0 = 20   # initial temperatures 
+θ0 = Text[0]   # initial temperatures 
 
 θ_exp[As.columns] = θ0      # fill θ for Euler explicit with initial values θ0
 θ_imp[As.columns] = θ0      # fill θ for Euler implicit with initial values θ0
@@ -476,23 +480,22 @@ q_HVAC_O_exp = KpA * (u['q19'] - y['θ5'].iloc[:, 0]) / SA  # W/m²
 q_HVAC_O_imp = KpA * (u['q19'] - y['θ5'].iloc[:, 1]) / SA  # W/m²
 #Hall
 SH = 2*Surface["H_Plafond"]+Surface["H_sud"]+Surface["Interface"]+Surface["H_adiab"]  # m², surface area of the house
-q_HVAC_S_exp = KpH * (u['q20'] - y['θ9'].iloc[:, 0]) / SH  # W/m²
-q_HVAC_S_imp = KpH * (u['q20'] - y['θ9'].iloc[:, 1]) / SH  # W/m²
+q_HVAC_H_exp = KpH * (u['q20'] - y['θ9'].iloc[:, 0]) / SH  # W/m²
+q_HVAC_H_imp = KpH * (u['q20'] - y['θ9'].iloc[:, 1]) / SH  # W/m²
 
 #on met ça dans un tableau
 
 #charges sensibles
 Qs = pd.DataFrame(index=u.index)
 Qs['q_HVAC_O_exp'] = q_HVAC_O_exp
-Qs['q_HVAC_S_exp'] = q_HVAC_S_exp
+Qs['q_HVAC_H_exp'] = q_HVAC_H_exp
 Qs['q_HVAC_O_imp'] = q_HVAC_O_imp
-Qs['q_HVAC_S_imp'] = q_HVAC_S_imp
+Qs['q_HVAC_H_imp'] = q_HVAC_H_imp
 
 #renouvellement CTA 
 cp_air = air['Specific heat']  # J/(kg·K)
 # θ5 est la température intérieure de l'amphi (explicite)
 Ti_A_exp = y_exp['θ5']
-Ts = Tc  # température de soufflage
 # Q_HVAC total [W] : multiplier la densité et la surface si nécessaire
 Qhvac_A_exp = q_HVAC_O_exp * SA  # q_HVAC_O_exp était en W/m²
 # débit massique [kg/s]
@@ -539,7 +542,7 @@ for i in range(len(y.columns)):
         ax[1].plot(y_col.index, y_col, label=labels[i], linestyle=linestyles[i], color=colors[i])
 
 # les flux HVAC
-Qs[['q_HVAC_O_exp', 'q_HVAC_S_exp', 'q_HVAC_O_imp', 'q_HVAC_S_imp']].plot(ax=ax[2])
+Qs[['q_HVAC_O_exp', 'q_HVAC_H_exp', 'q_HVAC_O_imp', 'q_HVAC_H_imp']].plot(ax=ax[2])
 
 #les temps ext
 text_series = pd.Series(Text_dyn).sort_index()
@@ -607,9 +610,9 @@ ax_extra[2].set_ylabel('kg eau / kg air sec')
 ax_extra[2].set_title('Évolution du ratio d’humidité extérieure')
 ax_extra[2].grid(True)
 
-ax_extra[3].plot(phi_series.index, text_series.values)
+ax_extra[3].plot(phi_series.index, phi_series.values*100)
 ax_extra[3].set_xlabel('Time', fontsize=12)
-ax_extra[3].set_ylabel('Temperature (°C)', fontsize=12)
+ax_extra[3].set_ylabel('phi (%)', fontsize=12)
 ax_extra[3].set_title('CAS 0 - Outside humidity', fontsize=14)
 ax_extra[3].legend(bbox_to_anchor=(1.05, 0.5), loc='center left', fontsize=10)
 ax_extra[3].xaxis.set_major_locator(mdates.HourLocator(interval=24*60)) #permet de pas avoir 100000 valeurs de temps sur le graphique, à changer si pas 10jours
