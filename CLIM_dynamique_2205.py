@@ -26,8 +26,8 @@ from psychro import w
 saison = "été"
 
 # à changer selon la saison que l'on veut
-start_date = '2000-06-20 08:00:00' 
-end_date = '2000-06-24 08:00:00'
+start_date = '2000-07-20 08:00:00' 
+end_date = '2000-07-24 08:00:00'
 
 
 
@@ -115,7 +115,7 @@ Th = 20
 Te = 24
 
 #################### charges auxiliaires ##################################
-npe = 70               # personnes en été
+npe = 0               # personnes en été      faire varier pour avoir le pire cas possible
 nph = 40               # personnes en hiver
 npmin = 3              # dans le hall
 #sensible
@@ -341,7 +341,7 @@ dtmax = 2 * min(-1. / λ)        #pas de temps max
 print(f"Pas de temps maximal pour stabilité : {dtmax:.2f} s") 
 
 # on choisit 80 % de dtmax
-dt = 0.8 * dtmax # Choisir un pas de temps inférieur pour garantir la stabilité
+dt = 0.6 * dtmax # Choisir un pas de temps inférieur pour garantir la stabilité
 
 # settling time, temps de fin de simulation max
 t_f = 4 * max(-1 / λ)
@@ -476,21 +476,21 @@ y['θ9'].iloc[:, 1] = pd.to_numeric(y['θ9'].iloc[:, 1], errors='coerce')
 
 #Amphi
 SA = 2*Surface["A_Plafond"]+Surface["A_ouest"]+Surface["A_adiab"]+Surface["Interface"] # m², surface area of the house
-q_HVAC_O_exp = KpA * (u['q19'] - y['θ5'].iloc[:, 0]) / SA  # W/m²
-q_HVAC_O_imp = KpA * (u['q19'] - y['θ5'].iloc[:, 1]) / SA  # W/m²
+q_HVAC_O_exp = KpA * (u['q19'] - y['θ5'].iloc[:, 0])/SA  # W/m²
+q_HVAC_O_imp = KpA * (u['q19'] - y['θ5'].iloc[:, 1])/SA  # W/m²
 #Hall
 SH = 2*Surface["H_Plafond"]+Surface["H_sud"]+Surface["Interface"]+Surface["H_adiab"]  # m², surface area of the house
-q_HVAC_H_exp = KpH * (u['q20'] - y['θ9'].iloc[:, 0]) / SH  # W/m²
-q_HVAC_H_imp = KpH * (u['q20'] - y['θ9'].iloc[:, 1]) / SH  # W/m²
+q_HVAC_H_exp = KpH * (u['q20'] - y['θ9'].iloc[:, 0])/SH  # W/m²
+q_HVAC_H_imp = KpH * (u['q20'] - y['θ9'].iloc[:, 1])/SH  # W/m²
 
 #on met ça dans un tableau
 
 #charges sensibles
 Qs = pd.DataFrame(index=u.index)
-Qs['q_HVAC_O_exp'] = q_HVAC_O_exp
-Qs['q_HVAC_H_exp'] = q_HVAC_H_exp
-Qs['q_HVAC_O_imp'] = q_HVAC_O_imp
-Qs['q_HVAC_H_imp'] = q_HVAC_H_imp
+Qs['q_HVAC_O_exp'] = q_HVAC_O_exp*SA
+Qs['q_HVAC_H_exp'] = q_HVAC_H_exp*SH
+Qs['q_HVAC_O_imp'] = q_HVAC_O_imp*SA
+Qs['q_HVAC_H_imp'] = q_HVAC_H_imp*SH
 
 #renouvellement CTA 
 cp_air = air['Specific heat']  # J/(kg·K)
