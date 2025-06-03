@@ -644,6 +644,9 @@ end_time = Qs.index.max() - time_out
 # Filtrage des données entre start_time et end_time
 Qs_filtered = Qs[(Qs.index >= start_time) & (Qs.index <= end_time)]
 Q_lat_filtered = Q_lat_A_exp[(Q_lat_A_exp.index >= start_time) & (Q_lat_A_exp.index <= end_time)]
+Q_lat_filtered = Q_lat_A_exp[(Q_lat_A_exp.index >= start_time) & (Q_lat_A_exp.index <= end_time)]
+mdot_filtered = m_dot_A_exp[(m_dot_A_exp.index >= start_time) & (m_dot_A_exp.index <= end_time)]
+
 
 # Calcul des min et max pour HVAC_A (entre exp et imp)
 HVAC_A_min = Qs_filtered[['q_HVAC_A_exp', 'q_HVAC_A_imp']].min(axis=1).min()
@@ -654,6 +657,9 @@ hvac_h_max = Qs_filtered[['q_HVAC_H_exp', 'q_HVAC_H_imp']].max(axis=1).max()
 #calcul des min etr max pour la charge latente
 Charge_latente_min = Q_lat_filtered.min()
 Charge_latente_max = Q_lat_filtered.max()
+#calcul du débit maximal
+mdot_min = mdot_filtered.min()
+mdot_max = mdot_filtered.max()
 
 # Résultat
 print("Qs_Amphi min:", HVAC_A_min ,"W")
@@ -662,3 +668,5 @@ print("Qs_Hall min:", hvac_h_min, "W")
 print("Qs_Hall max:", hvac_h_max, "W")
 print("Ql_Amphi min:", Charge_latente_min, "W")
 print("Ql_Amphi max:", Charge_latente_max, "W")
+print("M_dot min:", mdot_min, "kg/s")
+print("M_dot max:", mdot_max, "kg/s")
